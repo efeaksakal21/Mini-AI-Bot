@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mini Chatbot</title>
+  <style>
+    #chat {
+      width: 400px;
+      margin: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 400px;
+      overflow-y: auto;
+    }
+    .user {
+      color: black;
+      font-weight: bold;
+    }
+    .bot {
+      color: green;
+      font-weight: bold;
+    }
+    /* Mesaj yazma alanı ve buton aynı hizada */
+    #input-area {
+      width: 400px;
+      margin: auto;
+      margin-top: 10px;
+      display: flex;
+    }
+    #message {
+      flex: 1;
+      padding: 8px;
+      font-size: 14px;
+    }
+    #send-btn {
+      padding: 8px 15px;
+      margin-left: 5px;
+    }
+
+body {
+    background-image: url('https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
+    background-size: cover;        /* Ekrana tam otursun */
+    background-position: center;   /* Ortada dursun */
+    background-attachment: fixed;  /* Scroll yapınca sabit kalsın */
+    font-family: 'Arial', sans-serif;
+    color: white;                  /* Yazılar beyaz olsun */
+  }
+
+  #chat {
+    width: 400px;
+    margin: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    height: 300px;
+    overflow-y: auto;
+    background-color: rgba(0,0,0,0.6); /* yarı saydam arka plan */
+    border-radius: 10px;
+  }
+
+  #input-area {
+    width: 400px;
+    margin: auto;
+    margin-top: 10px;
+    display: flex;
+  }
+
+  #message {
+    flex: 1;
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: none;
+  }
+
+  #send-btn {
+    padding: 8px 15px;
+    margin-left: 5px;
+    border-radius: 5px;
+    border: none;
+    background: #00ffff;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  #send-btn:hover {
+    background: #00b3b3;
+  }
+
+  .user { font-weight: bold; color: #fff; }
+  .bot { font-weight: bold; color: #00ff99; }
+
+
+
+
+
+  </style>
+  <body>
+  <div id="chat"></div>
+  <div id="input-area">
+    <input type="text" id="message" placeholder="Mesaj yaz..." />
+    <button id="sendBtn" onclick="sendMessage()">Gönder</button>
+    <button id="stopBtn" onclick="stopReply()">Durdur</button>
+  </div>
+
+  <style>
+    #sendBtn {
+      background-color: #28a745; /* yeşil */
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      margin-left: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #sendBtn:hover {
+      background-color: #218838; /* koyu yeşil hover */
+    }
+
+    #stopBtn {
+      background-color: #40e0d0; /* turkuaz */
+      color: black;
+      border: none;
+      padding: 8px 14px;
+      margin-left: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #stopBtn:hover {
+      background-color: #20c997; /* koyu turkuaz hover */
+    }
+  </style>
+
+  <script>
+    let abortController = null;
+
+    async function sendMessage() {
+      const box = document.getElementById("message");
+      const text = box.value.trim();
+      if (!text) return;
+
+      document.getElementById("chat").innerHTML += `<p class="user">Sen: ${text}</p>`;
+      box.value = "";
+      box.focus();
+
+      abortController = new AbortController();
+      const signal = abortController.signal;
+
+      try {
+        const res = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+          signal
+        });
+
+        const data = await res.json();
+        let reply = data.reply;
+        let i = 0;
+        let botline = document.createElement("p");
+        botline.className = "bot";
+        botline.innerHTML = "Bot: ";
+        document.getElementById("chat").appendChild(botline);
+
+        function typeWriter() {
+          if (abortController === null) return;
+          if (i < reply.length) {
+            botline.innerHTML += reply.charAt(i);
+            i++;
+            setTimeout(typeWriter, 30);
+          }
+        }
+        typeWriter();
+      } catch (err) {
+        if (err.name === "AbortError") {
+          document.getElementById("chat").innerHTML += `<p class="system">(Cevap durduruldu)</p>`;
+        } else {
+          console.error(err);
+        }
+      }
+    }
+
+    function stopReply() {
+      if (abortController) {
+        abortController.abort();
+        abortController = null;
+      }
+    }
+
+    document.getElementById("message").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+<body>
+  
+</html>
